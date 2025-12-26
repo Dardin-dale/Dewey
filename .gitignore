@@ -1,0 +1,30 @@
+*.js
+!jest.config.js
+!register-commands.js
+*.d.ts
+node_modules
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+# Environment files
+.env
+.env.local
+
+# Build output
+dist/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
