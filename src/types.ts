@@ -15,10 +15,12 @@ export interface LLMProviderConfig {
   apiKey: string;
 }
 
+export type GenerationType = 'synopsis' | 'discussion' | 'recommendations' | 'content-warnings';
+
 export interface LLMProvider {
   name: string;
   generateSynopsis(bookTitle: string, searchResults?: string): Promise<string>;
-  generate(bookTitle: string, searchResults?: string, type?: 'synopsis' | 'discussion' | 'recommendations', basedOn?: string): Promise<string>;
+  generate(bookTitle: string, searchResults?: string, type?: GenerationType, basedOn?: string): Promise<string>;
   extractTitles(text: string): Promise<string[]>;
 }
 

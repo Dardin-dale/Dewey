@@ -10,6 +10,7 @@ import {
   generateSynopsis,
   generateBatchSynopses,
   generateDiscussionQuestions,
+  generateContentWarnings,
   generateRecommendations,
   parseTitles,
   SynopsisResult,
@@ -268,6 +269,13 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
       const titleOption = slashInteraction.data.options?.find(opt => opt.name === 'title');
       const bookTitle = titleOption && titleOption.type === 3 ? titleOption.value : '';
       content = await generateDiscussionQuestions(bookTitle);
+    } else if (name === 'content-warnings') {
+      const titleOption = slashInteraction.data.options?.find(opt => opt.name === 'title');
+      const bookTitle = titleOption && titleOption.type === 3 ? titleOption.value : '';
+      content = await generateContentWarnings(bookTitle);
+    } else if (name === 'poll') {
+      await processPollCommand(slashInteraction);
+      return; // Poll handles its own responses
     } else if (name === 'recommend') {
       const basedOnOption = slashInteraction.data.options?.find(opt => opt.name === 'based_on');
       const basedOn = basedOnOption && basedOnOption.type === 3 ? basedOnOption.value : '';
@@ -573,4 +581,117 @@ async function sendBatchResults(
   }
 
   console.log('All batch results sent');
+}
+
+/**
+ * Process /poll command - creates a Discord poll with a synopses thread
+ */
+async function processPollCommand(
+  interaction: APIChatInputApplicationCommandInteraction
+): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_SECRET_TOKEN;
+  if (!botToken) {
+    await sendFollowUp(interaction, '❌ Bot token not configured');
+    return;
+  }
+
+  // Parse options
+  const booksOption = interaction.data.options?.find(opt => opt.name === 'books');
+  const durationOption = interaction.data.options?.find(opt => opt.name === 'duration');
+  const multipleOption = interaction.data.options?.find(opt => opt.name === 'multiple');
+
+  const booksString = booksOption && booksOption.type === 3 ? booksOption.value : '';
+  const duration = durationOption && durationOption.type === 4 ? durationOption.value : 24;
+  const allowMultiple = multipleOption && multipleOption.type === 5 ? multipleOption.value : false;
+
+  // Parse titles
+  const titles = booksString.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+  if (titles.length < 2 || titles.length > 10) {
+    await sendFollowUp(interaction, '❌ Please provide 2-10 book titles');
+    return;
+  }
+
+  const channelId = interaction.channel?.id || interaction.channel_id;
+  if (!channelId) {
+    await sendFollowUp(interaction, '❌ Could not determine channel');
+    return;
+  }
+
+  try {
+    // Create poll message via Discord API
+    const pollResponse = await fetch(
+      `https://discord.com/api/v10/channels/${channelId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bot ${botToken}`,
+        },
+        body: JSON.stringify({
+          poll: {
+            question: { text: '📚 Which book should we read next?' },
+            answers: titles.map(title => ({
+              poll_media: { text: title.substring(0, 55) } // Discord limit
+            })),
+            duration: duration,
+            allow_multiselect: allowMultiple,
+          },
+        }),
+      }
+    );
+
+    if (!pollResponse.ok) {
+      const errorText = await pollResponse.text();
+      console.error('Failed to create poll:', pollResponse.status, errorText);
+      await sendFollowUp(interaction, '❌ Failed to create poll. Check bot permissions.');
+      return;
+    }
+
+    const pollMessage = await pollResponse.json() as { id: string };
+    console.log('Created poll message:', pollMessage.id);
+
+    // Create thread from poll message
+    const threadResponse = await fetch(
+      `https://discord.com/api/v10/channels/${channelId}/messages/${pollMessage.id}/threads`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bot ${botToken}`,
+        },
+        body: JSON.stringify({
+          name: `📖 Book Synopses (${titles.length} options)`.substring(0, 100),
+          auto_archive_duration: 1440,
+        }),
+      }
+    );
+
+    if (!threadResponse.ok) {
+      const errorText = await threadResponse.text();
+      console.error('Failed to create thread:', threadResponse.status, errorText);
+      await sendFollowUp(interaction, '✅ Poll created! (Could not create synopses thread)');
+      return;
+    }
+
+    const thread = await threadResponse.json() as { id: string };
+    console.log('Created thread:', thread.id);
+
+    // Send ephemeral confirmation
+    await sendFollowUp(interaction, `✅ Poll created with ${titles.length} books! Generating synopses in thread...`);
+
+    // Post initial message to thread
+    await sendToThread(thread.id, `Generating synopses for:\n${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`);
+
+    // Generate synopses in parallel
+    const results = await generateBatchSynopses(titles);
+
+    // Send each synopsis to the thread
+    await sendBatchToThread(thread.id, results);
+
+    console.log('Poll and synopses complete');
+  } catch (error) {
+    console.error('Error processing poll:', error);
+    await sendFollowUp(interaction, `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }

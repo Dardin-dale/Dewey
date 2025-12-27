@@ -2,7 +2,7 @@
  * Google Gemini LLM Provider with Google Search grounding
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { LLMProvider } from '../types';
+import { LLMProvider, GenerationType } from '../types';
 
 export class GeminiProvider implements LLMProvider {
   public readonly name = 'gemini';
@@ -16,7 +16,7 @@ export class GeminiProvider implements LLMProvider {
     return this.generate(bookTitle, undefined, 'synopsis');
   }
 
-  public async generate(bookTitle: string, _searchResults?: string, type: 'synopsis' | 'discussion' | 'recommendations' = 'synopsis', basedOn?: string): Promise<string> {
+  public async generate(bookTitle: string, _searchResults?: string, type: GenerationType = 'synopsis', basedOn?: string): Promise<string> {
     // Enable Google Search grounding for real-time book information
     const model = this.genAI.getGenerativeModel({
       model: 'gemini-3-flash-preview',
@@ -42,6 +42,8 @@ export class GeminiProvider implements LLMProvider {
       variables.basedOn = basedOn || `the book "${bookTitle}"`;
     } else if (type === 'discussion') {
       template = prompts.discussion;
+    } else if (type === 'content-warnings') {
+      template = prompts.contentWarnings;
     } else {
       template = prompts.synopsis;
     }

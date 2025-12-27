@@ -64,6 +64,42 @@ export const commands: (RESTPostAPIChatInputApplicationCommandsJSONBody | typeof
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName('content-warnings')
+    .setDescription('Get content warnings and trigger warnings for a book')
+    .addStringOption(option =>
+      option
+        .setName('title')
+        .setDescription('The book title')
+        .setRequired(true)
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('poll')
+    .setDescription('Create a book poll with synopses thread')
+    .addStringOption(option =>
+      option
+        .setName('books')
+        .setDescription('Book titles (comma-separated, max 10)')
+        .setRequired(true)
+    )
+    .addIntegerOption(option =>
+      option
+        .setName('duration')
+        .setDescription('Poll duration in hours (default: 24, max: 168)')
+        .setRequired(false)
+        .setMinValue(1)
+        .setMaxValue(168)
+    )
+    .addBooleanOption(option =>
+      option
+        .setName('multiple')
+        .setDescription('Allow voting for multiple books (default: false)')
+        .setRequired(false)
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName('recommend')
     .setDescription('Get book recommendations based on your favorites')
     .addStringOption(option =>

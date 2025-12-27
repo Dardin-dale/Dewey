@@ -2,7 +2,7 @@
  * Anthropic Claude LLM Provider with web search
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { LLMProvider } from '../types';
+import { LLMProvider, GenerationType } from '../types';
 
 export class ClaudeProvider implements LLMProvider {
   public readonly name = 'claude';
@@ -16,7 +16,7 @@ export class ClaudeProvider implements LLMProvider {
     return this.generate(bookTitle, undefined, 'synopsis');
   }
 
-  public async generate(bookTitle: string, _searchResults?: string, type: 'synopsis' | 'discussion' | 'recommendations' = 'synopsis', basedOn?: string): Promise<string> {
+  public async generate(bookTitle: string, _searchResults?: string, type: GenerationType = 'synopsis', basedOn?: string): Promise<string> {
     const { getPrompts, buildPrompt } = require('../prompts');
     const prompts = getPrompts();
 
@@ -30,6 +30,8 @@ export class ClaudeProvider implements LLMProvider {
       variables.basedOn = basedOn || `the book "${bookTitle}"`;
     } else if (type === 'discussion') {
       template = prompts.discussion;
+    } else if (type === 'content-warnings') {
+      template = prompts.contentWarnings;
     } else {
       template = prompts.synopsis;
     }

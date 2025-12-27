@@ -55,6 +55,10 @@ export async function handleInteraction(interaction: APIInteraction): Promise<In
         return handleSynopsisBatchCommand(commandInteraction);
       case 'discussion':
         return handleDiscussionCommand(commandInteraction);
+      case 'content-warnings':
+        return handleContentWarningsCommand(commandInteraction);
+      case 'poll':
+        return handlePollCommand(commandInteraction);
       case 'recommend':
         return handleRecommendCommand(commandInteraction);
       case 'provider':
@@ -100,8 +104,16 @@ function handleHelpCommand(): InteractionResponse {
             value: 'Generate thoughtful discussion questions for your book club meeting. Covers themes, characters, and deeper analysis.',
           },
           {
+            name: '/content-warnings [title]',
+            value: 'Get content warnings and trigger warnings for a book before reading. Covers violence, mature themes, and more.',
+          },
+          {
             name: '/recommend [based_on]',
             value: 'Get personalized book recommendations. Try a title like "Project Hail Mary" or a description like "cozy mysteries with cats".',
+          },
+          {
+            name: '/poll [books]',
+            value: 'Create a book poll with auto-generated synopses thread. Comma-separated titles, optional duration and multi-vote.',
           },
           {
             name: 'Other Commands',
@@ -404,6 +416,61 @@ async function handleDiscussionCommand(
 }
 
 /**
+ * Handle /content-warnings command
+ */
+async function handleContentWarningsCommand(
+  interaction: APIChatInputApplicationCommandInteraction
+): Promise<InteractionResponse> {
+  const titleOption = interaction.data.options?.find(opt => opt.name === 'title');
+
+  if (!titleOption || titleOption.type !== 3) {
+    return errorResponse('Please provide a book title');
+  }
+
+  // Send deferred response
+  return {
+    type: InteractionResponseType.DeferredChannelMessageWithSource,
+  };
+}
+
+/**
+ * Handle /poll command
+ */
+async function handlePollCommand(
+  interaction: APIChatInputApplicationCommandInteraction
+): Promise<InteractionResponse> {
+  const booksOption = interaction.data.options?.find(opt => opt.name === 'books');
+
+  if (!booksOption || booksOption.type !== 3) {
+    return errorResponse('Please provide book titles');
+  }
+
+  const booksString = booksOption.value.trim();
+  if (booksString.length === 0) {
+    return errorResponse('Please provide at least one book title');
+  }
+
+  // Parse titles (simple comma split for polls)
+  const titles = booksString.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+  if (titles.length < 2) {
+    return errorResponse('Please provide at least 2 book titles for a poll');
+  }
+
+  if (titles.length > 10) {
+    return errorResponse('Discord polls support a maximum of 10 options');
+  }
+
+  // Send deferred response (ephemeral while we create the poll)
+  return {
+    type: InteractionResponseType.DeferredChannelMessageWithSource,
+    data: {
+      flags: 64, // Ephemeral
+    },
+  };
+}
+
+/**
  * Generate discussion questions for a book
  */
 export async function generateDiscussionQuestions(bookTitle: string): Promise<string> {
@@ -422,6 +489,26 @@ export async function generateDiscussionQuestions(bookTitle: string): Promise<st
     return `# Discussion Questions: ${bookTitle}\n\n${questions}`;
   } catch (error) {
     console.error('Error generating discussion questions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate content warnings for a book
+ */
+export async function generateContentWarnings(bookTitle: string): Promise<string> {
+  try {
+    const providerManager = getProviderManager();
+
+    // Generate content warnings using current LLM provider (with web search)
+    console.log(`Generating content warnings for: ${bookTitle}`);
+    console.log(`Using provider: ${providerManager.getCurrentProvider()}`);
+    const provider = providerManager.getProvider();
+    const warnings = await provider.generate(bookTitle, undefined, 'content-warnings');
+
+    return warnings;
+  } catch (error) {
+    console.error('Error generating content warnings:', error);
     throw error;
   }
 }

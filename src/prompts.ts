@@ -6,6 +6,7 @@ export interface PromptConfig {
   synopsis: string;
   discussion: string;
   recommendations: string;
+  contentWarnings: string;
 }
 
 /**
@@ -50,6 +51,8 @@ These questions are for a book club meeting. Make them:
 - Relevant to the book's key themes and moments
 - Search for information about this book to ensure accuracy
 
+SPOILER FORMATTING: When questions reference specific plot points, character deaths, twists, or endings, wrap those details in Discord spoiler tags using ||spoiler text|| format. This allows readers who haven't finished to participate without seeing spoilers. Example: "How did ||the death of Dumbledore|| affect Harry's journey?"
+
 Format as a numbered list with brief context for each question when helpful.`,
 
   recommendations: `Based on {basedOn}, recommend 5 books that readers might enjoy.
@@ -60,7 +63,28 @@ For each recommendation, provide:
 - Why it's similar or would appeal to fans
 
 Focus on quality recommendations that match the tone, themes, or style.
-Format as a numbered list.`
+Format as a numbered list.`,
+
+  contentWarnings: `List content warnings for "{title}" in a simple, spoiler-free format.
+
+Search for information about this book. List ONLY the warning categories that apply - do not explain plot details or how they occur.
+
+Categories to check: violence, death, gore, sexual content, sexual assault, domestic abuse, child abuse, suicide, self-harm, eating disorders, addiction, animal death, mental illness, trauma/PTSD, war, torture, racism, homophobia, ableism, medical trauma, grief, pregnancy loss, claustrophobia, other phobias
+
+Format - group by severity, indent categories with spaces:
+
+**Content Warnings: {title}**
+
+🔴 **Major** (frequent/graphic)
+    category, category
+
+🟡 **Moderate** (present but not central)
+    category, category
+
+🟢 **Minor** (brief mentions)
+    category, category
+
+Only include severity sections that have warnings. If no major warnings exist, just say "No major content warnings - generally mild read." Keep it brief and spoiler-free.`
 };
 
 /**
@@ -71,6 +95,7 @@ export function getPrompts(): PromptConfig {
     synopsis: process.env.PROMPT_SYNOPSIS || DEFAULT_PROMPTS.synopsis,
     discussion: process.env.PROMPT_DISCUSSION || DEFAULT_PROMPTS.discussion,
     recommendations: process.env.PROMPT_RECOMMENDATIONS || DEFAULT_PROMPTS.recommendations,
+    contentWarnings: process.env.PROMPT_CONTENT_WARNINGS || DEFAULT_PROMPTS.contentWarnings,
   };
 }
 
