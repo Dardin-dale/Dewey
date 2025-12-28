@@ -7,6 +7,14 @@ A Discord bot for book clubs. Dewey provides spoiler-free synopses, discussion q
 ### Slash Commands
 - **/synopsis [title]** - Get a spoiler-free book synopsis perfect for deciding what to read next
 - **/discussion [title]** - Generate thought-provoking discussion questions for your book club meeting
+  - Spoiler-sensitive details are wrapped in Discord spoiler tags (||like this||)
+- **/content-warnings [title]** - Get content/trigger warnings for a book
+  - Grouped by severity (Major/Moderate/Minor)
+  - Spoiler-free format
+- **/poll [books]** - Create a book poll with synopses thread
+  - `books`: Comma-separated titles (max 10)
+  - `duration`: Poll duration in hours (default: 24, max: 168)
+  - `multiple`: Allow voting for multiple books (default: false)
 - **/recommend [based_on]** - Get personalized book recommendations based on a title or description
 - **/synopsis-batch [titles] [thread]** - Get synopses for multiple books at once
   - Accepts comma-separated titles or freeform text (AI extracts book titles)
