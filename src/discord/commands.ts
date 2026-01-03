@@ -83,6 +83,12 @@ export const commands: (RESTPostAPIChatInputApplicationCommandsJSONBody | typeof
         .setDescription('Book titles (comma-separated, max 10)')
         .setRequired(true)
     )
+    .addStringOption(option =>
+      option
+        .setName('instructions')
+        .setDescription('Instructions to append to poll title (e.g., "Vote for up to 3!")')
+        .setRequired(false)
+    )
     .addIntegerOption(option =>
       option
         .setName('duration')

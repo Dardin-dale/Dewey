@@ -177,9 +177,6 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
 
         console.log(`Message command: Created thread ${threadId}, sending synopses there`);
 
-        // Send confirmation to channel (this goes to original channel)
-        await sendFollowUp(messageInteraction, `📚 Created thread for ${titles.length} book(s): ${titles.join(', ')}\n\n_Check the thread for synopses!_`);
-
         // Post initial list to the thread
         console.log(`Sending initial list to thread ${threadId}`);
         await sendToThread(threadId, `Processing synopses for:\n${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`);
@@ -192,6 +189,9 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
         // Send each synopsis to the thread in order
         await sendBatchToThread(threadId, results);
         console.log('All synopses sent to thread');
+
+        // Send ephemeral acknowledgment (required to complete the deferred interaction)
+        await sendFollowUp(messageInteraction, `✅ Synopses generated for ${titles.length} book(s) in thread.`, true);
         return;
       }
 
@@ -231,10 +231,7 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
         );
 
         if (threadId) {
-          // Send confirmation to channel
-          await sendFollowUp(slashInteraction, `📚 Created thread for ${titles.length} book(s): ${titles.join(', ')}\n\n_Check the thread for synopses!_`);
-
-          // Post to thread
+          // Post initial list to thread
           console.log(`Sending to thread ${threadId}`);
           await sendToThread(threadId, `Processing synopses for:\n${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`);
 
@@ -242,6 +239,9 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
           console.log(`Sending ${results.length} results to thread ${threadId}`);
           await sendBatchToThread(threadId, results);
           console.log('Batch to thread complete');
+
+          // Send ephemeral acknowledgment
+          await sendFollowUp(slashInteraction, `✅ Synopses generated for ${titles.length} book(s) in thread.`, true);
           return;
         }
         // Fall through to regular behavior if thread creation fails
@@ -483,16 +483,18 @@ function splitContent(content: string, maxLength: number = 1900): string[] {
 /**
  * Send follow-up message to Discord
  * Splits long content into multiple messages if needed
+ * @param ephemeral - If true, message is only visible to the user who triggered the interaction
  */
 async function sendFollowUp(
   interaction: APIChatInputApplicationCommandInteraction | APIMessageApplicationCommandInteraction,
-  content: string
+  content: string,
+  ephemeral: boolean = false
 ): Promise<void> {
   const url = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
 
   try {
     console.log('Sending follow-up to Discord');
-    console.log(`Content length: ${content.length} chars`);
+    console.log(`Content length: ${content.length} chars, ephemeral: ${ephemeral}`);
 
     const chunks = splitContent(content);
     console.log(`Splitting into ${chunks.length} message(s)`);
@@ -501,14 +503,17 @@ async function sendFollowUp(
       const chunk = chunks[i];
       console.log(`Sending chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
 
+      const body: { content: string; flags?: number } = { content: chunk };
+      if (ephemeral) {
+        body.flags = 64; // Ephemeral flag
+      }
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          content: chunk,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -597,10 +602,12 @@ async function processPollCommand(
 
   // Parse options
   const booksOption = interaction.data.options?.find(opt => opt.name === 'books');
+  const instructionsOption = interaction.data.options?.find(opt => opt.name === 'instructions');
   const durationOption = interaction.data.options?.find(opt => opt.name === 'duration');
   const multipleOption = interaction.data.options?.find(opt => opt.name === 'multiple');
 
   const booksString = booksOption && booksOption.type === 3 ? booksOption.value : '';
+  const instructions = instructionsOption && instructionsOption.type === 3 ? instructionsOption.value : '';
   const duration = durationOption && durationOption.type === 4 ? durationOption.value : 24;
   const allowMultiple = multipleOption && multipleOption.type === 5 ? multipleOption.value : false;
 
@@ -619,6 +626,12 @@ async function processPollCommand(
   }
 
   try {
+    // Build poll question (max 300 chars per Discord API)
+    let pollQuestion = '📚 Which book should we read next?';
+    if (instructions) {
+      pollQuestion = `📚 Which book should we read next? ${instructions}`.substring(0, 300);
+    }
+
     // Create poll message via Discord API
     const pollResponse = await fetch(
       `https://discord.com/api/v10/channels/${channelId}/messages`,
@@ -630,7 +643,7 @@ async function processPollCommand(
         },
         body: JSON.stringify({
           poll: {
-            question: { text: '📚 Which book should we read next?' },
+            question: { text: pollQuestion },
             answers: titles.map(title => ({
               poll_media: { text: title.substring(0, 55) } // Discord limit
             })),
@@ -670,7 +683,7 @@ async function processPollCommand(
     if (!threadResponse.ok) {
       const errorText = await threadResponse.text();
       console.error('Failed to create thread:', threadResponse.status, errorText);
-      await sendFollowUp(interaction, '✅ Poll created! (Could not create synopses thread)');
+      await sendFollowUp(interaction, '✅ Poll created! (Could not create synopses thread)', true);
       return;
     }
 
@@ -678,7 +691,7 @@ async function processPollCommand(
     console.log('Created thread:', thread.id);
 
     // Send ephemeral confirmation
-    await sendFollowUp(interaction, `✅ Poll created with ${titles.length} books! Generating synopses in thread...`);
+    await sendFollowUp(interaction, `✅ Poll created with ${titles.length} books! Generating synopses in thread...`, true);
 
     // Post initial message to thread
     await sendToThread(thread.id, `Generating synopses for:\n${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`);

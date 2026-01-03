@@ -113,7 +113,7 @@ function handleHelpCommand(): InteractionResponse {
           },
           {
             name: '/poll [books]',
-            value: 'Create a book poll with auto-generated synopses thread. Comma-separated titles, optional duration and multi-vote.',
+            value: 'Create a book poll with auto-generated synopses thread. Comma-separated titles, optional instructions (e.g., "Vote for 3!"), duration and multi-vote.',
           },
           {
             name: 'Other Commands',
@@ -156,12 +156,32 @@ function handleMessageCommand(
 
 /**
  * Extract target message content from a message command interaction
+ * Handles both regular messages and Discord poll messages
  */
 export function getMessageCommandContent(
   interaction: APIMessageApplicationCommandInteraction
 ): string | null {
   const targetMessageId = interaction.data.target_id;
   const targetMessage = interaction.data.resolved?.messages?.[targetMessageId];
+
+  if (!targetMessage) {
+    return null;
+  }
+
+  // Check if this is a poll message
+  const poll = (targetMessage as any).poll;
+  if (poll && poll.answers && Array.isArray(poll.answers)) {
+    // Extract titles from poll answers
+    const titles = poll.answers
+      .map((answer: any) => answer.poll_media?.text)
+      .filter((text: string | undefined) => text && text.length > 0);
+
+    if (titles.length > 0) {
+      return titles.join(', ');
+    }
+  }
+
+  // Fall back to regular message content
   return targetMessage?.content || null;
 }
 
