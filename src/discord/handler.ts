@@ -141,13 +141,18 @@ function handleMessageCommand(
     const targetMessageId = interaction.data.target_id;
     const targetMessage = interaction.data.resolved?.messages?.[targetMessageId];
 
-    if (!targetMessage || !targetMessage.content) {
+    // Check for content OR poll data (poll messages have empty content)
+    const hasPoll = !!(targetMessage as any)?.poll?.answers?.length;
+    if (!targetMessage || (!targetMessage.content && !hasPoll)) {
       return errorResponse('Could not read the message content');
     }
 
-    // Defer response - processing happens async
+    // Defer response - processing happens async (ephemeral to avoid channel clutter)
     return {
       type: InteractionResponseType.DeferredChannelMessageWithSource,
+      data: {
+        flags: 64, // Ephemeral
+      },
     };
   }
 
@@ -164,17 +169,24 @@ export function getMessageCommandContent(
   const targetMessageId = interaction.data.target_id;
   const targetMessage = interaction.data.resolved?.messages?.[targetMessageId];
 
+  console.log('getMessageCommandContent - targetMessageId:', targetMessageId);
+  console.log('getMessageCommandContent - targetMessage:', JSON.stringify(targetMessage, null, 2));
+
   if (!targetMessage) {
     return null;
   }
 
   // Check if this is a poll message
   const poll = (targetMessage as any).poll;
+  console.log('getMessageCommandContent - poll data:', JSON.stringify(poll, null, 2));
+
   if (poll && poll.answers && Array.isArray(poll.answers)) {
     // Extract titles from poll answers
     const titles = poll.answers
       .map((answer: any) => answer.poll_media?.text)
       .filter((text: string | undefined) => text && text.length > 0);
+
+    console.log('getMessageCommandContent - extracted titles:', titles);
 
     if (titles.length > 0) {
       return titles.join(', ');
