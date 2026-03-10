@@ -151,8 +151,8 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
           return;
         }
 
-        if (titles.length > 10) {
-          await sendFollowUp(messageInteraction, `❌ Too many books (${titles.length}). Maximum 10 per batch.`);
+        if (titles.length > 20) {
+          await sendFollowUp(messageInteraction, `❌ Too many books (${titles.length}). Maximum 20 per batch.`);
           return;
         }
 
@@ -217,8 +217,8 @@ async function processDeferred(interaction: APIChatInputApplicationCommandIntera
         return;
       }
 
-      if (titles.length > 10) {
-        await sendFollowUp(slashInteraction, `❌ Too many books (${titles.length}). Maximum 10 per batch.`);
+      if (titles.length > 20) {
+        await sendFollowUp(slashInteraction, `❌ Too many books (${titles.length}). Maximum 20 per batch.`);
         return;
       }
 

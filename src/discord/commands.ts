@@ -80,7 +80,7 @@ export const commands: (RESTPostAPIChatInputApplicationCommandsJSONBody | typeof
     .addStringOption(option =>
       option
         .setName('books')
-        .setDescription('Book titles (comma-separated, max 10)')
+        .setDescription('Book titles (comma-separated, max 20)')
         .setRequired(true)
     )
     .addStringOption(option =>
