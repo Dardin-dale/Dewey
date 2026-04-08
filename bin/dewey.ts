@@ -5,10 +5,8 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { DeweyStack } from '../lib/dewey-stack';
-import dotenv from 'dotenv';
-
 // Load environment variables
-dotenv.config();
+process.loadEnvFile();
 
 const app = new cdk.App();
 

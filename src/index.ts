@@ -18,8 +18,7 @@ import {
 } from './discord/handler';
 
 // Load environment variables
-import dotenv from 'dotenv';
-dotenv.config();
+process.loadEnvFile();
 
 const lambdaClient = new LambdaClient({});
 

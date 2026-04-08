@@ -1,7 +1,6 @@
 /**
  * Web search functionality for finding book information
  */
-import axios from 'axios';
 import { WebSearchResult } from './types';
 
 export class BookSearchService {
@@ -15,14 +14,14 @@ export class BookSearchService {
       const searchQuery = encodeURIComponent(`${bookTitle} book synopsis`);
       const url = `https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1`;
 
-      const response = await axios.get(url, {
-        timeout: 10000,
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000),
         headers: {
           'User-Agent': 'Dewey-BookBot/1.0'
         }
       });
 
-      const data = response.data;
+      const data: any = await response.json();
 
       // Combine relevant information from DDG response
       let searchInfo = '';

@@ -2,10 +2,9 @@
 /**
  * Register Discord slash commands
  */
-import dotenv from 'dotenv';
 import { registerCommands } from './discord/commands';
 
-dotenv.config();
+process.loadEnvFile();
 
 const appId = process.env.DISCORD_APP_ID;
 const token = process.env.DISCORD_BOT_SECRET_TOKEN;

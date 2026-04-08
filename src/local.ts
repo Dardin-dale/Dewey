@@ -2,12 +2,11 @@
  * Local development server for testing Discord interactions
  */
 import express from 'express';
-import dotenv from 'dotenv';
 import { handler } from './index';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 
 // Load environment variables
-dotenv.config();
+process.loadEnvFile();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
